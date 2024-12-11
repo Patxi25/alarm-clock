@@ -1,1 +1,1 @@
-# custom-alarm-clock
+# alarm-clock
