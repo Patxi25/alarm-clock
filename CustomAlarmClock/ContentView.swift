@@ -21,17 +21,17 @@ struct ContentView: View {
                         .font(.subheadline)
                 }
             }
-        }
-        .navigationTitle("Alarms")
-        .toolbar {
-            Button(action: {
-                showingAddAlarmView.toggle()
-            }) {
-                Label("Add Alarm", systemImage: "plus")
+            .navigationTitle("Alarms")
+            .toolbar {
+                Button(action: {
+                    showingAddAlarmView.toggle()
+                }) {
+                    Label("Add Alarm", systemImage: "plus")
+                }
             }
-        }
-        .sheet(isPresented: $showingAddAlarmView) {
-            AddAlarmView(viewModel: viewModel)
+            .sheet(isPresented: $showingAddAlarmView) {
+                AddAlarmView(viewModel: viewModel)
+            }
         }
     }
     
