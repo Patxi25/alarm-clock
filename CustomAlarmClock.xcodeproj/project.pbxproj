@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		4570A0982D0A0CD600AB452F /* CustomAlarmClock.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CustomAlarmClock.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4570A0982D0A0CD600AB452F /* CustomAlarmClock.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = CustomAlarmClock.app; path = "/Users/franciscoalberdi/Documents/repos/alarm-clock/build/Debug/CustomAlarmClock.app"; sourceTree = "<absolute>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -33,16 +33,7 @@
 			isa = PBXGroup;
 			children = (
 				4570A09A2D0A0CD600AB452F /* CustomAlarmClock */,
-				4570A0992D0A0CD600AB452F /* Products */,
 			);
-			sourceTree = "<group>";
-		};
-		4570A0992D0A0CD600AB452F /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				4570A0982D0A0CD600AB452F /* CustomAlarmClock.app */,
-			);
-			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -95,7 +86,7 @@
 			mainGroup = 4570A08F2D0A0CD600AB452F;
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
-			productRefGroup = 4570A0992D0A0CD600AB452F /* Products */;
+			productRefGroup = 4570A08F2D0A0CD600AB452F;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
