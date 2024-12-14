@@ -1,5 +1,5 @@
 //
-//  LocalNotificationsManager.swift
+//  LocalNotificationManager.swift
 //  CustomAlarmClock
 //
 //  Created by Daniel Astudillo on 12/12/24.
