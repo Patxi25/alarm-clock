@@ -7,12 +7,24 @@
 
 import SwiftUI
 import Combine
+import AVFoundation
 
 class AlarmViewModel: ObservableObject {
-    @Published var alarms: [Alarm] = []
+    var localNotificationManager: LocalNotificationManager?
+    @Published var alarms: [AlarmModel] = []
     
+    init (localNotificationManager: LocalNotificationManager?){
+        if localNotificationManager != nil {
+            self.localNotificationManager = localNotificationManager
+        }
+    }
+
     func addAlarm(time: Date, label: String) {
-        let newAlarm = Alarm(time: time, label: label)
+        let newAlarm = AlarmModel(time: time, label: label, isActive: true)
         alarms.append(newAlarm)
+        Task{
+            await localNotificationManager?.scheduleAlarmNotification(alarm: newAlarm)
+        }
     }
 }
+
