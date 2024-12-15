@@ -9,8 +9,8 @@ import Foundation
 import NotificationCenter
 import AVFoundation
 
+//TODO Daniel: Divide this class into a SoundManager, TaskManager, and AlarmManager.
 @MainActor
-
 class LocalNotificationManager: NSObject, ObservableObject, UNUserNotificationCenterDelegate, AVAudioPlayerDelegate {
    
     @Published var isAuthorized: Bool? = nil
@@ -20,7 +20,12 @@ class LocalNotificationManager: NSObject, ObservableObject, UNUserNotificationCe
             saveAlarms()
         }
     }
+    
     var alarmSoundPlayer: AVAudioPlayer?
+    
+    private var scheduledTasks: [String: DispatchWorkItem] = [:]
+    //TODO Daniel: Revisit this approach.
+    private var currentTimers: [String: Timer] = [:]
     
     let notificationCenter = UNUserNotificationCenter.current()
     let itemKey = "Alarms List"
@@ -28,7 +33,6 @@ class LocalNotificationManager: NSObject, ObservableObject, UNUserNotificationCe
     override init(){
         super.init()
         setupNotificationCategories()
-        //TODO: Move all audio logic to an AudioManager that implements AVAudioPlayerDelegate
         setupAudioSession()
         
         notificationCenter.delegate = self
@@ -66,10 +70,10 @@ class LocalNotificationManager: NSObject, ObservableObject, UNUserNotificationCe
     
     func saveAlarms() {
         if let encodeData = try? JSONEncoder()
-            .encode(alarms) {
+            .encode(self.alarms) {
                 UserDefaults
                 .standard
-                .set(encodeData, forKey: itemKey)
+                .set(encodeData, forKey: self.itemKey)
             }
     }
     
@@ -77,26 +81,127 @@ class LocalNotificationManager: NSObject, ObservableObject, UNUserNotificationCe
         pendingAlarms = await notificationCenter.pendingNotificationRequests()
     }
     
-    func scheduleAlarmNotification(alarm: AlarmModel) async {
+    func scheduleNotification(alarm: AlarmModel) async {
         let content = UNMutableNotificationContent()
         content.title = "Alarm"
         content.body = alarm.label
         content.categoryIdentifier = "myAlarmCategory"
+        content.userInfo = ["alarmId": alarm.id]
         
         // Create a trigger for the alarm time
         let triggerDate = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: alarm.time)
         let trigger = UNCalendarNotificationTrigger(dateMatching: triggerDate, repeats: true)
-
+        
         // Schedule the notification
-        let request = UNNotificationRequest(identifier: alarm.id, content: content, trigger: trigger)
+        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
         
         try? await notificationCenter.add(request)
         
         print("Notification request sent successfully for alarm with time: \(alarm.time)")
         
+        scheduleNotificationLoop(for: alarm)
+        
+        scheduleBackgroundTask(for: alarm)
+        
         pendingAlarms = await notificationCenter.pendingNotificationRequests()
+        
     }
     
+    func scheduleNotificationLoop(for alarm: AlarmModel) {
+        let initialFireDate = alarm.time.addingTimeInterval(7)
+        
+        let repeatInterval: TimeInterval = 7
+        
+        let timer = Timer(fireAt: initialFireDate, interval: repeatInterval, target: self, selector: #selector(timerFired(_:)), userInfo: alarm, repeats: true)
+        
+        self.currentTimers[alarm.id] = timer
+        
+        print("Before scheduling timer, alarms count: \(self.alarms.count)")
+        
+        // Add the timer to the run loop so it will trigger
+        RunLoop.main.add(timer, forMode: .default)
+    }
+    
+    func invalidateTimer(for alarmId: String) {
+        guard let timer = self.currentTimers[alarmId] else {
+            print("Timer does not exist.")
+            return
+        }
+        timer.invalidate()
+    }
+    
+    // TODO Daniel: Consolidate Notification request creation logic
+    @objc func timerFired(_ timer: Timer) {        
+        // Retrieve the alarm object from userInfo
+        guard let alarm = timer.userInfo as? AlarmModel else {
+            print("No alarm found in timer's userInfo")
+            return
+        }
+        
+        let content = UNMutableNotificationContent()
+        content.title = "Alarm"
+        content.body = alarm.label
+        content.categoryIdentifier = "myAlarmCategory"
+        content.userInfo = ["alarmId": alarm.id]
+        
+        let repeatingTrigger = UNTimeIntervalNotificationTrigger(timeInterval: 7, repeats: false)
+        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: repeatingTrigger)
+        
+        Task {
+            do {
+                try await notificationCenter.add(request)
+                print("Repeating notification scheduled for alarm \(alarm.id)")
+            } catch {
+                print("Failed to schedule repeating notification: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    func cancelNotification(for alarm: AlarmModel) {
+        cancelBackgroundTask(for: alarm.id)
+
+        //TODO Daniel: Double check this in the scenario where the user interacts with the notification loop.
+        // Cancel the pending notification request
+        notificationCenter.removePendingNotificationRequests(withIdentifiers: [alarm.id])
+
+        // Cancel any delivered notifications (e.g., if the alarm already went off)
+        notificationCenter.removeDeliveredNotifications(withIdentifiers: [alarm.id])
+    }
+    
+    func scheduleBackgroundTask(for alarm: AlarmModel) {
+        let delay = alarm.time.timeIntervalSinceNow
+        print("delay: \(delay)")
+
+        if delay > 0 {
+            // Create a DispatchWorkItem
+            let workItem = DispatchWorkItem { [weak self] in
+                guard let self = self else { return }
+                Task { @MainActor in
+                    self.playRadarSound()
+                    
+                    self.scheduledTasks[alarm.id] = nil
+                }
+            }
+
+            // Store the work item for cancellation
+            scheduledTasks[alarm.id] = workItem
+
+            // Schedule the task
+            DispatchQueue.global().asyncAfter(deadline: .now() + delay, execute: workItem)
+        }
+    }
+    
+    func cancelBackgroundTask(for alarmId: String) {
+        print("Cancelling background task for alarm: \(alarmId)")
+        if let workItem = scheduledTasks[alarmId] {
+            print("Cancelling work item for alarm: \(alarmId)")
+            workItem.cancel()
+            scheduledTasks[alarmId] = nil
+        } else {
+            print("No work item found for alarm: \(alarmId)")
+        }
+    }
+
     private func setupNotificationCategories() {
         let stopAction = UNNotificationAction(identifier: "STOP_ACTION", title: "Stop", options: [.foreground])
 
@@ -119,6 +224,7 @@ class LocalNotificationManager: NSObject, ObservableObject, UNUserNotificationCe
        }
     }
 
+    // TODO Daniel: Refactor this so that any alarm sound can be played.
     @MainActor
     private func playRadarSound() {
         guard let filePath = Bundle.main.path(forResource: "radar", ofType: "mp3") else {
@@ -144,13 +250,11 @@ class LocalNotificationManager: NSObject, ObservableObject, UNUserNotificationCe
     }
     
     func stopAlarm(alarmId: String?) {
-        // Stop sound if playing
         alarmSoundPlayer?.stop()
-        
-        // Cancel the notification associated with the alarm
         if let alarmId = alarmId {
             notificationCenter.removePendingNotificationRequests(withIdentifiers: [alarmId])
             notificationCenter.removeDeliveredNotifications(withIdentifiers: [alarmId])
+            cancelBackgroundTask(for: alarmId)
         }
     }
 
@@ -163,12 +267,6 @@ class LocalNotificationManager: NSObject, ObservableObject, UNUserNotificationCe
                 AudioServicesPlaySystemSound(SystemSoundID(kSystemSoundID_Vibrate))
             }, nil)
         
-        //TODO: This is just for testing, should be playing triggered alarm sound.
-        // Play radar sound on the main thread.
-        Task { @MainActor in
-            playRadarSound()
-        }
-        
         NotificationCenter.default.post(name: NSNotification.Name("ShowAlarmPopup"), object: nil, userInfo: ["alarmId": notification.request.identifier, "alarmBody": notification.request.content.body])
         
         completionHandler([.banner, .sound])
@@ -178,15 +276,17 @@ class LocalNotificationManager: NSObject, ObservableObject, UNUserNotificationCe
     // When the user interacts with a notification (e.g., taps on it)
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
         
-        let alarmId = response.notification.request.identifier
-        NotificationCenter.default.post(name: NSNotification.Name("ShowAlarmPopup"), object: nil, userInfo: ["alarmId": alarmId])
+        if let alarmId = response.notification.request.content.userInfo["alarmId"] as? String {
+            print("User tapped on notification for alarm: \(alarmId)")
+            
+            NotificationCenter.default.post(name: NSNotification.Name("ShowAlarmPopup"), object: nil, userInfo: ["alarmId": alarmId])
 
-        if response.actionIdentifier == "STOP_ACTION" {
-           // Stop the alarm
-           Task { @MainActor in
-               stopAlarm(alarmId: alarmId)
-           }
-           print("Alarm stopped.")
+            if response.actionIdentifier == "STOP_ACTION" {
+               // Stop the alarm
+               Task { @MainActor in
+                   stopAlarm(alarmId: alarmId)
+               }
+            }
         }
 
        completionHandler()
