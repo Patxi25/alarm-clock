@@ -7,8 +7,9 @@
 
 import Foundation
 
-struct AlarmModel: Identifiable {
-    var id = UUID()
+struct AlarmModel: Identifiable, Codable, Hashable {
+    var id = UUID().uuidString
     var time: Date
     var label: String
+    var isActive: Bool
 }
