@@ -15,7 +15,6 @@ struct ContentView: View {
     @State private var showingAlarmPopup = false
     @State private var alarmId: String?
     @State private var alarmBody: String?
-    
     @Environment(\.scenePhase) var scenePhase
     
     var body: some View {
@@ -23,6 +22,7 @@ struct ContentView: View {
             NavigationView {
                 if let isAuthorized = localNotificationManager.isAuthorized {
                     if isAuthorized {
+                        // Show the list of alarms if authorized
                         List {
                             ForEach($viewModel.alarms) { $alarm in
                                 Toggle(isOn: $alarm.isActive) {
@@ -33,13 +33,29 @@ struct ContentView: View {
                                             .font(.subheadline)
                                     }
                                 }
-                                .onChange(of: alarm.isActive, {_, isActive in
-                                    if isActive {
-                                        Task {
-                                            await localNotificationManager.scheduleAlarmNotification(alarm: alarm)
+                                .onChange(of: alarm.isActive, {oldValue, newValue in
+                                    print("Alarm \(alarm.id) isActive changed from \(oldValue) to \(newValue)")
+                                    if newValue {
+                                        // If the alarm is active, check if it needs to be rescheduled
+                                        var alarmTime = alarm.time
+                                        let currentTime = Date()
+
+                                        // Add a day to the alarm time if it's toggled from false to true and the alarm time is in the past
+                                        if oldValue == false {
+                                            print("oldValue == false")
+                                            if alarmTime <= currentTime {
+                                                alarmTime = alarmTime.addingTimeInterval(24 * 60 * 60)
+                                            }
                                         }
+
+                                        // Update the alarm time in the model
+                                        alarm.time = alarmTime
+                                        Task {
+                                            await localNotificationManager.scheduleNotification(alarm: alarm)
+                                        }
+                                    } else {
+                                        viewModel.disableAlarm(alarmId: alarm.id)
                                     }
-                                    // TODO: If alarm becomes deactivated, delete notification request from notification center using LocalNotificationManager
                                 })
                             }
                         }
@@ -59,11 +75,17 @@ struct ContentView: View {
                     }
                 } else {
                     Text("Loading...")
+                        .onAppear {
+                            Task { @MainActor in
+                                // Request permission
+                                try await localNotificationManager.requestAuthorization()
+                            }
+                        }
                 }
             }
             
-            if showingAlarmPopup {
-                AlarmPopupView(alarmId: alarmId, alarmBody: alarmBody, showingAlarmPopup: $showingAlarmPopup)
+            if showingAlarmPopup, let alarmIndex = viewModel.alarms.firstIndex(where: { $0.id == alarmId }) {
+                AlarmPopupView(triggeredAlarm: $viewModel.alarms[alarmIndex], showingAlarmPopup: $showingAlarmPopup, viewModel: viewModel)
                     .opacity(0.8)
                     .transition(.asymmetric(insertion: .opacity, removal: .opacity))
                     .animation(.easeInOut(duration: 0.3), value: showingAlarmPopup)
@@ -86,15 +108,9 @@ struct ContentView: View {
             }
         })
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowAlarmPopup"))) { notification in
-            // Show the AlarmPopupView when the notification is received
             if let alarmId = notification.userInfo?["alarmId"] as? String {
                 self.alarmId = alarmId
             }
-            
-            if let alarmBody = notification.userInfo?["alarmBody"] as? String {
-                self.alarmBody = alarmBody
-            }
-            
             self.showingAlarmPopup = true
         }
     }

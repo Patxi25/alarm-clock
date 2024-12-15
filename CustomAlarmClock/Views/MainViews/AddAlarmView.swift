@@ -24,6 +24,9 @@ struct AddAlarmView: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
+                        if selectedTime <= Date() {
+                            selectedTime = selectedTime.addingTimeInterval(24 * 60 * 60)
+                        }
                         viewModel.addAlarm(time: selectedTime, label: label)
                         presentationMode.wrappedValue.dismiss()
                     }

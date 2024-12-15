@@ -9,9 +9,9 @@ import SwiftUI
 
 struct AlarmPopupView: View {
     @EnvironmentObject var localNotificationManager: LocalNotificationManager
-    @State var alarmId: String?
-    @State var alarmBody: String?
+    @Binding var triggeredAlarm: AlarmModel
     @Binding var showingAlarmPopup: Bool
+    @ObservedObject var viewModel: AlarmViewModel
 
     var body: some View {
         ZStack {
@@ -23,7 +23,7 @@ struct AlarmPopupView: View {
                 // Alarm triggered message with subtle font size and style
                 Spacer()
                 
-                Text(alarmBody?.isEmpty ?? true ? "Alarm" : alarmBody ?? "Alarm")
+                Text(triggeredAlarm.label.isEmpty ? "Alarm" : triggeredAlarm.label )
                     .font(.system(size: 28, weight: .medium, design: .rounded))
                     .foregroundColor(.white)
                     .padding(.top, 50)
@@ -36,7 +36,9 @@ struct AlarmPopupView: View {
                     withAnimation{
                         showingAlarmPopup = false
                     }
-                    localNotificationManager.stopAlarm(alarmId: self.alarmId)
+                    //TODO Daniel: Refactor this 
+                    viewModel.disableAlarm(alarmId: triggeredAlarm.id)
+                    localNotificationManager.stopAlarm(alarmId: triggeredAlarm.id)
                 }) {
                     Text("Stop")
                         .font(.system(size: 22, weight: .light, design: .rounded)) // Smoother, medium weight font
@@ -63,7 +65,9 @@ struct AlarmPopupView: View {
 
 struct AlarmPopupView_Previews: PreviewProvider {
     @State static var showingAlarmPopup: Bool = true
+    @State static var alarm: AlarmModel = AlarmModel(id: "1", time: Date(), label: "Test Alarm", isActive: true)
+    @State static var viewModel: AlarmViewModel = AlarmViewModel(localNotificationManager: LocalNotificationManager())
     static var previews: some View {
-        AlarmPopupView(showingAlarmPopup: $showingAlarmPopup).environmentObject(LocalNotificationManager())
+        AlarmPopupView(triggeredAlarm: $alarm, showingAlarmPopup: $showingAlarmPopup, viewModel: viewModel).environmentObject(LocalNotificationManager())
     }
 }
