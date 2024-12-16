@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct AddAlarmView: View {
+    @EnvironmentObject var localNotificationManager: LocalNotificationManager
     @Environment(\.presentationMode) var presentationMode
     @State private var selectedTime = Date()
     @State private var label = ""
@@ -23,6 +24,9 @@ struct AddAlarmView: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
+                        if selectedTime <= Date() {
+                            selectedTime = selectedTime.addingTimeInterval(24 * 60 * 60)
+                        }
                         viewModel.addAlarm(time: selectedTime, label: label)
                         presentationMode.wrappedValue.dismiss()
                     }
@@ -34,11 +38,16 @@ struct AddAlarmView: View {
                 }
             }
         }
+        .onAppear {
+            if viewModel.localNotificationManager == nil {
+                viewModel.localNotificationManager = self.localNotificationManager
+            }
+        }
     }
 }
 
 struct AddAlarmView_Previews: PreviewProvider {
     static var previews: some View {
-        AddAlarmView(viewModel: AlarmViewModel())
+        AddAlarmView(viewModel: AlarmViewModel(localNotificationManager: LocalNotificationManager()))
     }
 }
