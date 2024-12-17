@@ -179,14 +179,14 @@ class LocalNotificationManager: NSObject, ObservableObject, UNUserNotificationCe
             let workItem = DispatchWorkItem { [weak self] in
                 guard let self = self else { return }
                 print("alarm.soundType \(alarm.soundType)")
+                
                 Task { @MainActor in
                     switch alarm.soundType {
                     case .radar:
-                        self.playRadarSound()
-                    case .youtube:
-                        self.playYouTubeAudio(url: alarm.soundURL ?? "")
+                        self.playSound(named: "radar", ofType: "mp3")
+                    case .papacito:
+                        self.playSound(named: "papacito", ofType: "mp3")
                     }
-                    
                     
                     self.scheduledTasks[alarm.id] = nil
                 }
@@ -233,28 +233,27 @@ class LocalNotificationManager: NSObject, ObservableObject, UNUserNotificationCe
        }
     }
 
-    // TODO Daniel: Refactor this so that any alarm sound can be played.
     @MainActor
-    private func playRadarSound() {
-        guard let filePath = Bundle.main.path(forResource: "radar", ofType: "mp3") else {
-                print("Radar sound file not found.")
-                return
-            }
+    private func playSound(named fileName: String, ofType fileType: String) {
+        guard let filePath = Bundle.main.path(forResource: fileName, ofType: fileType) else {
+            print("Sound file \(fileName).\(fileType) not found.")
+            return
+        }
         let url = URL(fileURLWithPath: filePath)
-        print("url \(url)")
+        print("Sound file URL: \(url)")
         
         do {
             alarmSoundPlayer = try AVAudioPlayer(contentsOf: url)
         } catch let error as NSError {
             alarmSoundPlayer = nil
-            print("alarmSoundPlayer error \(error.localizedDescription)")
+            print("Error initializing audio player: \(error.localizedDescription)")
             return
         }
         
         if let player = alarmSoundPlayer {
             player.delegate = self
             player.prepareToPlay()
-            player.numberOfLoops = -1
+            player.numberOfLoops = -1  // Loop indefinitely
             player.play()
         }
     }
@@ -300,11 +299,5 @@ class LocalNotificationManager: NSObject, ObservableObject, UNUserNotificationCe
         }
 
        completionHandler()
-    }
-    
-    func playYouTubeAudio(url: String) {
-        guard let audioURL = URL(string: url) else { return }
-        player = AVPlayer(url: audioURL)
-        player?.play()
     }
 }

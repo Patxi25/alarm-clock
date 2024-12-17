@@ -13,17 +13,21 @@ struct AlarmModel: Identifiable, Codable, Hashable {
     var label: String
     var isActive: Bool
     var soundType: SoundType
-    var soundURL: String?
 }
 
-enum SoundType: String, Codable, CaseIterable {
+enum SoundType: Codable, CaseIterable {
     case radar
-    case youtube
+    case papacito
     
     var displayName: String {
         switch self {
         case .radar: return "Radar"
-        case .youtube: return "YouTube"
+        case .papacito: return "Papacito"
         }
     }
+
+    static var allCases: [SoundType] {
+        return [.radar, .papacito]
+    }
 }
+

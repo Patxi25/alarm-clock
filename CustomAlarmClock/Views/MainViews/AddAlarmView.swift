@@ -13,7 +13,6 @@ struct AddAlarmView: View {
     @State private var selectedTime = Date()
     @State private var label = ""
     @State private var selectedSoundType: SoundType = .radar
-    @State private var soundURL: String = ""
     @ObservedObject var viewModel: AlarmViewModel
     var alarm: AlarmModel? = nil
     
@@ -26,11 +25,6 @@ struct AddAlarmView: View {
                     ForEach(SoundType.allCases, id: \.self) { soundType in
                         Text(soundType.displayName).tag(soundType)
                     }
-                }
-                if selectedSoundType == .youtube {
-                    TextField("Sound URL", text: $soundURL)
-                        .keyboardType(.URL)
-                        .autocapitalization(.none)
                 }
             }
             .navigationTitle(alarm == nil ? "Add Alarm" : "Edit Alarm")
@@ -45,9 +39,9 @@ struct AddAlarmView: View {
                             label = "Alarm \(count)"
                         }
                         if let alarm = alarm {
-                            viewModel.updateAlarm(id: alarm.id, time: selectedTime, label: label, soundType: selectedSoundType, soundURL: soundURL)
+                            viewModel.updateAlarm(id: alarm.id, time: selectedTime, label: label, soundType: selectedSoundType)
                         } else {
-                            viewModel.addAlarm(time: selectedTime, label: label, soundType: selectedSoundType, soundURL: soundURL)
+                            viewModel.addAlarm(time: selectedTime, label: label, soundType: selectedSoundType)
                         }
                         presentationMode.wrappedValue.dismiss()
                     }

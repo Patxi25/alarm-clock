@@ -18,21 +18,20 @@ class AlarmViewModel: ObservableObject {
         }
     }
 
-    func addAlarm(time: Date, label: String, soundType: SoundType, soundURL: String) {
-        let newAlarm = AlarmModel(time: time, label: label, isActive: true, soundType: soundType, soundURL: soundURL)
+    func addAlarm(time: Date, label: String, soundType: SoundType) {
+        let newAlarm = AlarmModel(time: time, label: label, isActive: true, soundType: soundType)
         Task { @MainActor in
             alarms.append(newAlarm)
             await localNotificationManager?.scheduleNotification(alarm: newAlarm)
         }
     }
     
-    func updateAlarm(id: String, time: Date, label: String, soundType: SoundType, soundURL: String) {
+    func updateAlarm(id: String, time: Date, label: String, soundType: SoundType) {
         if let index = alarms.firstIndex(where: { $0.id == id}) {
             Task { @MainActor in
                 alarms[index].time = time
                 alarms[index].label = label
                 alarms[index].soundType = soundType
-                alarms[index].soundURL = soundURL
                 if alarms[index].isActive {
                     await localNotificationManager?.scheduleNotification(alarm: alarms[index])
                 }
