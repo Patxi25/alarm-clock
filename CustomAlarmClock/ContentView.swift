@@ -15,6 +15,7 @@ struct ContentView: View {
     @State private var showingAlarmPopup = false
     @State private var alarmId: String?
     @State private var alarmBody: String?
+    @State private var alarmToEdit: AlarmModel?
     @Environment(\.scenePhase) var scenePhase
     
     var body: some View {
@@ -32,6 +33,10 @@ struct ContentView: View {
                                         Text("\(alarm.time, formatter: timeFormatter)")
                                             .font(.subheadline)
                                     }
+                                }
+                                .onTapGesture {
+                                    alarmToEdit = alarm
+                                    showingAddAlarmView.toggle()
                                 }
                                 .onChange(of: alarm.isActive, {oldValue, newValue in
                                     print("Alarm \(alarm.id) isActive changed from \(oldValue) to \(newValue)")
@@ -62,13 +67,14 @@ struct ContentView: View {
                         .navigationTitle("Alarms")
                         .toolbar {
                             Button(action: {
+                                alarmToEdit = nil
                                 showingAddAlarmView.toggle()
                             }) {
                                 Label("Add Alarm", systemImage: "plus")
                             }
                         }
                         .sheet(isPresented: $showingAddAlarmView) {
-                            AddAlarmView(viewModel: viewModel)
+                            AddAlarmView(viewModel: viewModel, alarm: alarmToEdit)
                         }
                     } else {
                         EnableNotifications()
@@ -123,5 +129,5 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView()
+    ContentView().environmentObject(LocalNotificationManager())
 }

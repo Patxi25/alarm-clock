@@ -26,6 +26,18 @@ class AlarmViewModel: ObservableObject {
         }
     }
     
+    func updateAlarm(id: String, time: Date, label: String) {
+        if let index = alarms.firstIndex(where: { $0.id == id}) {
+            Task { @MainActor in
+                alarms[index].time = time
+                alarms[index].label = label
+                if alarms[index].isActive {
+                    await localNotificationManager?.scheduleNotification(alarm: alarms[index])
+                }
+            }
+        }
+    }
+    
     func disableAlarm(alarmId: String){
         if let index = alarms.firstIndex(where: { $0.id == alarmId }) {
             Task { @MainActor in

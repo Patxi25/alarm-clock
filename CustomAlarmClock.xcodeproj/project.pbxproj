@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		4570A0982D0A0CD600AB452F /* CustomAlarmClock.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = CustomAlarmClock.app; path = "/Users/franciscoalberdi/Documents/repos/alarm-clock/build/Debug/CustomAlarmClock.app"; sourceTree = "<absolute>"; };
+		45B8616F2D10986500B33356 /* CustomAlarmClock.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CustomAlarmClock.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -33,6 +33,7 @@
 			isa = PBXGroup;
 			children = (
 				4570A09A2D0A0CD600AB452F /* CustomAlarmClock */,
+				45B8616F2D10986500B33356 /* CustomAlarmClock.app */,
 			);
 			sourceTree = "<group>";
 		};
@@ -58,7 +59,7 @@
 			packageProductDependencies = (
 			);
 			productName = CustomAlarmClock;
-			productReference = 4570A0982D0A0CD600AB452F /* CustomAlarmClock.app */;
+			productReference = 45B8616F2D10986500B33356 /* CustomAlarmClock.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
