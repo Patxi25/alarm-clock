@@ -8,6 +8,7 @@
 import Foundation
 import NotificationCenter
 import AVFoundation
+import SpotifyiOS
 
 //TODO Daniel: Divide this class into a SoundManager, TaskManager, and AlarmManager.
 @MainActor
@@ -22,6 +23,8 @@ class LocalNotificationManager: NSObject, ObservableObject, UNUserNotificationCe
     }
     
     var alarmSoundPlayer: AVAudioPlayer?
+    var appRemote: SPTAppRemote?
+    var player: AVPlayer?
     
     private var scheduledTasks: [String: DispatchWorkItem] = [:]
     //TODO Daniel: Revisit this approach.
@@ -100,7 +103,6 @@ class LocalNotificationManager: NSObject, ObservableObject, UNUserNotificationCe
         print("Notification request sent successfully for alarm with time: \(alarm.time)")
         
         scheduleNotificationLoop(for: alarm)
-        
         scheduleBackgroundTask(for: alarm)
         
         pendingAlarms = await notificationCenter.pendingNotificationRequests()
@@ -176,8 +178,15 @@ class LocalNotificationManager: NSObject, ObservableObject, UNUserNotificationCe
             // Create a DispatchWorkItem
             let workItem = DispatchWorkItem { [weak self] in
                 guard let self = self else { return }
+                print("alarm.soundType \(alarm.soundType)")
                 Task { @MainActor in
-                    self.playRadarSound()
+                    switch alarm.soundType {
+                    case .radar:
+                        self.playRadarSound()
+                    case .youtube:
+                        self.playYouTubeAudio(url: alarm.soundURL ?? "")
+                    }
+                    
                     
                     self.scheduledTasks[alarm.id] = nil
                 }
@@ -232,6 +241,7 @@ class LocalNotificationManager: NSObject, ObservableObject, UNUserNotificationCe
                 return
             }
         let url = URL(fileURLWithPath: filePath)
+        print("url \(url)")
         
         do {
             alarmSoundPlayer = try AVAudioPlayer(contentsOf: url)
@@ -290,5 +300,11 @@ class LocalNotificationManager: NSObject, ObservableObject, UNUserNotificationCe
         }
 
        completionHandler()
+    }
+    
+    func playYouTubeAudio(url: String) {
+        guard let audioURL = URL(string: url) else { return }
+        player = AVPlayer(url: audioURL)
+        player?.play()
     }
 }

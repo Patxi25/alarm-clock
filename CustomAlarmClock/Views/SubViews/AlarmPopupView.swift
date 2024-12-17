@@ -65,7 +65,7 @@ struct AlarmPopupView: View {
 
 struct AlarmPopupView_Previews: PreviewProvider {
     @State static var showingAlarmPopup: Bool = true
-    @State static var alarm: AlarmModel = AlarmModel(id: "1", time: Date(), label: "Test Alarm", isActive: true)
+    @State static var alarm: AlarmModel = AlarmModel(id: "1", time: Date(), label: "Test Alarm", isActive: true, soundType: .radar)
     @State static var viewModel: AlarmViewModel = AlarmViewModel(localNotificationManager: LocalNotificationManager())
     static var previews: some View {
         AlarmPopupView(triggeredAlarm: $alarm, showingAlarmPopup: $showingAlarmPopup, viewModel: viewModel).environmentObject(LocalNotificationManager())
